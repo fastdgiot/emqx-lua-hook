@@ -1,5 +1,5 @@
 %%--------------------------------------------------------------------
-%% Copyright (c) 2020 EMQ Technologies Co., Ltd. All Rights Reserved.
+%% Copyright (c) 2020-2021 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -147,7 +147,7 @@ do_load(FileName) ->
                     error;
                 {Ret1, St1} ->
                     ?LOG(debug, "Register lua script ~p", [FileName]),
-                    do_register_hooks(Ret1, FileName, St1),
+                    _ = do_register_hooks(Ret1, FileName, St1),
                     {FileName, St1};
                 Other ->
                     ?LOG(error, "Failed to load lua script ~p, register_hook() raise exception ~p", [FileName, Other]),
@@ -184,7 +184,7 @@ do_register(Hook, ScriptName, _St) ->
 do_register_hooks([], _ScriptName, _St) ->
     ok;
 do_register_hooks([H|T], ScriptName, St) ->
-    do_register(H, ScriptName, St),
+    _ = do_register(H, ScriptName, St),
     do_register_hooks(T, ScriptName, St);
 do_register_hooks(Hook = <<$o, $n, _Rest/binary>>, ScriptName, St) ->
     do_register(Hook, ScriptName, St);
@@ -192,8 +192,8 @@ do_register_hooks(Hook, ScriptName, _St) ->
     ?LOG(error, "Discard unknown hook type ~p from ~p", [Hook, ScriptName]).
 
 do_unloadall(Scripts) ->
-    [do_unload(X) || X <- Scripts],
-    ok.
+    lists:foreach(fun do_unload/1, Scripts).
 
 do_unload(Script) ->
-    emqx_lua_script:unregister_hooks(Script).
+    emqx_lua_script:unregister_hooks(Script),
+    ok.

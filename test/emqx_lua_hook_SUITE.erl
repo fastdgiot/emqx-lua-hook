@@ -1,5 +1,5 @@
 %%--------------------------------------------------------------------
-%% Copyright (c) 2020 EMQ Technologies Co., Ltd. All Rights Reserved.
+%% Copyright (c) 2020-2021 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -141,7 +141,6 @@ case11(_Config) ->
     Msg = #message{qos = 2, flags = #{retain => true}, topic = <<"a/b/c">>, payload = <<"123">>, headers = #{}},
     Ret = emqx_hooks:run_fold('message.delivered', [#{clientid => <<"myclient">>, username => <<"myuser">>}], Msg),
     ?assertEqual(Msg, Ret),
-    emqx_lua_hook:stop(),
     ok = file:delete(ScriptName).
 
 case12(_Config) ->
@@ -203,7 +202,6 @@ case22(_Config) ->
     Msg = #message{qos = 2, flags = #{retain => true}, topic = <<"a/b/c">>, payload = <<"123">>, headers = #{}},
     Ret = emqx_hooks:run('message.acked', [#{clientid => <<"myclient">>, username => <<"myuser">>}, Msg]),
     ?assertEqual(ok, Ret),
-    emqx_lua_hook:stop(),
     ok = file:delete(ScriptName).
 
 case31(_Config) ->
@@ -669,7 +667,7 @@ case301(_Config) ->
 
     ClientInfo = #{clientid => undefined,
                    username => <<"test">>,
-                   peername => undefined,
+                   peerhost => {127, 0, 0, 1},
                    password => <<"mqtt">>
                   },
     Result = #{auth_result => success, anonymous => true},
@@ -677,8 +675,6 @@ case301(_Config) ->
                  emqx_hooks:run_fold('client.authenticate', [ClientInfo], Result)).
 
 case302(_Config) ->
-    application:set_env(emqx, modules, [{emqx_mod_acl_internal, [{acl_file, emqx:get_env(acl_file)}]}]),
-    emqx_modules:load_module(emqx_mod_acl_internal, false),
     ScriptName = filename:join([emqx_lua_hook:lua_dir(), "abc.lua"]),
     Code =   "function on_client_check_acl(clientid, username, peerhost, password, topic, pubsub)"
            "\n    return \"allow\""
@@ -690,7 +686,7 @@ case302(_Config) ->
     ok = file:write_file(ScriptName, Code), ok = emqx_lua_hook:load_scripts(),
     ClientInfo = #{clientid => undefined,
                    username => <<"test">>,
-                   peername => undefined,
+                   peerhost => {127, 0, 0, 1},
                    password => <<"mqtt">>
                   },
     ?assertEqual(allow, emqx_hooks:run_fold('client.check_acl',
